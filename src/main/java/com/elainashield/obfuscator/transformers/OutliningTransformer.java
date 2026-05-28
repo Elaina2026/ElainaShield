@@ -16,6 +16,7 @@ public class OutliningTransformer {
     @SuppressWarnings("unused")
     private final ObfuscationContext context;
     private final NameGenerator nameGen;
+    private final Set<String> generatedMethods = new HashSet<>();
 
     public OutliningTransformer(ObfuscationConfig config, ObfuscationContext context, NameGenerator nameGen) {
         this.config = config;
@@ -145,6 +146,12 @@ public class OutliningTransformer {
     }
 
     private boolean isForbidden(AbstractInsnNode insn, Set<LabelNode> jumpTargets) {
+        if (insn instanceof MethodInsnNode && insn.getOpcode() == Opcodes.INVOKESTATIC) {
+            MethodInsnNode min = (MethodInsnNode) insn;
+            if (generatedMethods.contains(min.name)) {
+                return true;
+            }
+        }
         if (insn instanceof JumpInsnNode || insn instanceof TableSwitchInsnNode || 
             insn instanceof LookupSwitchInsnNode) {
             return true;
@@ -244,6 +251,8 @@ public class OutliningTransformer {
         descBuilder.append(")V");
         
         String bsmName = nameGen.nextMethodName();
+        generatedMethods.add(bsmName);
+        
         MethodNode syntheticMethod = new MethodNode(
                 Opcodes.ACC_PRIVATE | Opcodes.ACC_STATIC | Opcodes.ACC_SYNTHETIC,
                 bsmName,
