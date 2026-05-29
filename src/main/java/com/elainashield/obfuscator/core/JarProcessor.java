@@ -221,7 +221,7 @@ public class JarProcessor {
             manifest.getMainAttributes().put(Attributes.Name.MAIN_CLASS,
                     remappedMainClass.replace('/', '.'));
             System.out.println("  [*] Main class remapped: " +
-                    mainClassName.replace('/', '.') + " → " +
+                    mainClassName.replace('/', '.') + " -> " +
                     remappedMainClass.replace('/', '.'));
         }
 

@@ -35,15 +35,15 @@ public class JunkCodeTransformer {
     private final Random random;
 
     /** Number of junk methods to add per class */
-    private static final int JUNK_METHODS_PER_CLASS_MIN = 2;
-    private static final int JUNK_METHODS_PER_CLASS_MAX = 5;
+    private static final int JUNK_METHODS_PER_CLASS_MIN = 15;
+    private static final int JUNK_METHODS_PER_CLASS_MAX = 30;
 
     /** Number of junk fields to add per class */
-    private static final int JUNK_FIELDS_PER_CLASS_MIN = 1;
-    private static final int JUNK_FIELDS_PER_CLASS_MAX = 4;
+    private static final int JUNK_FIELDS_PER_CLASS_MIN = 10;
+    private static final int JUNK_FIELDS_PER_CLASS_MAX = 20;
 
     /** Aggressive mode multiplier */
-    private static final int AGGRESSIVE_MULTIPLIER = 3;
+    private static final int AGGRESSIVE_MULTIPLIER = 5;
 
     public JunkCodeTransformer(ObfuscationConfig config, ObfuscationContext context, NameGenerator nameGen) {
         this.config = config;
@@ -478,7 +478,7 @@ public class JunkCodeTransformer {
      */
     private int injectInlineDeadCode(MethodNode method) {
         int injected = 0;
-        int maxInjections = config.isAggressiveMode() ? 5 : 2;
+        int maxInjections = config.isAggressiveMode() ? 15 : 5;
 
         InsnList insns = method.instructions;
         List<AbstractInsnNode> insertionPoints = findInsertionPoints(insns);
@@ -585,7 +585,7 @@ public class JunkCodeTransformer {
      * Generate a few meaningless instructions for the dead code body.
      */
     private void generateInlineJunkInstructions(InsnList insns) {
-        int count = 3 + random.nextInt(8);
+        int count = 15 + random.nextInt(25);
         for (int i = 0; i < count; i++) {
             int type = random.nextInt(6);
             switch (type) {

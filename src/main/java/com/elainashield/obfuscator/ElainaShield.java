@@ -87,14 +87,14 @@ public class ElainaShield {
             long elapsed = System.currentTimeMillis() - startTime;
             System.out.println();
             System.out.println("  ╔══════════════════════════════════════════════╗");
-            System.out.println("  ║  [✓] Obfuscation completed successfully!     ║");
-            System.out.printf("   ║  [*] Time elapsed: %-25s║%n", elapsed + "ms");
-            System.out.printf("   ║  [*] Output: %-31s║%n", truncate(outputPath, 31));
+            System.out.println("  ║  [OK] Obfuscation completed successfully!    ║");
+            System.out.printf("  ║  [*] Time elapsed: %-25s ║%n", elapsed + "ms");
+            System.out.printf("  ║  [*] Output: %-31s ║%n", truncate(outputPath, 31));
             System.out.println("  ╚══════════════════════════════════════════════╝");
 
         } catch (Exception e) {
             System.err.println();
-            System.err.println("  [✗] Obfuscation failed: " + e.getMessage());
+            System.err.println("  [ERROR] Obfuscation failed: " + e.getMessage());
             e.printStackTrace();
             System.exit(1);
         }

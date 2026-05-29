@@ -151,7 +151,12 @@ public class NameManglingTransformer {
     public List<ClassNode> applyRenaming(List<ClassNode> classes) {
         System.out.println("  [NameMangling] Phase 2: Applying renaming...");
 
-        ElainaRemapper remapper = new ElainaRemapper();
+        Map<String, ClassNode> classMap = new HashMap<>();
+        for (ClassNode cn : classes) {
+            classMap.put(cn.name, cn);
+        }
+
+        ElainaRemapper remapper = new ElainaRemapper(classMap);
         List<ClassNode> remappedClasses = new ArrayList<>();
 
         for (ClassNode cn : classes) {
@@ -311,6 +316,11 @@ public class NameManglingTransformer {
      * to remap all references consistently.
      */
     private class ElainaRemapper extends Remapper {
+        private final Map<String, ClassNode> classMap;
+
+        public ElainaRemapper(Map<String, ClassNode> classMap) {
+            this.classMap = classMap;
+        }
 
         @Override
         public String map(String internalName) {
@@ -323,19 +333,14 @@ public class NameManglingTransformer {
 
         @Override
         public String mapMethodName(String owner, String name, String descriptor) {
-            // Don't remap constructors
             if (name.startsWith("<")) return name;
 
-            // Check if we have a mapping for this method
             if (context.hasMethodMapping(owner, name, descriptor)) {
                 return context.getObfuscatedMethodName(owner, name, descriptor);
             }
 
-            // Try to find mapping through class hierarchy
-            String remappedOwner = map(owner);
-            if (!remappedOwner.equals(owner) && context.hasMethodMapping(owner, name, descriptor)) {
-                return context.getObfuscatedMethodName(owner, name, descriptor);
-            }
+            String remapped = findMethodMappingInHierarchy(owner, name, descriptor);
+            if (remapped != null) return remapped;
 
             return name;
         }
@@ -345,7 +350,59 @@ public class NameManglingTransformer {
             if (context.hasFieldMapping(owner, name, descriptor)) {
                 return context.getObfuscatedFieldName(owner, name, descriptor);
             }
+
+            String remapped = findFieldMappingInHierarchy(owner, name, descriptor);
+            if (remapped != null) return remapped;
+
             return name;
+        }
+
+        private String findMethodMappingInHierarchy(String owner, String name, String descriptor) {
+            ClassNode cn = classMap.get(owner);
+            if (cn == null) return null;
+
+            if (cn.superName != null) {
+                if (context.hasMethodMapping(cn.superName, name, descriptor)) {
+                    return context.getObfuscatedMethodName(cn.superName, name, descriptor);
+                }
+                String remapped = findMethodMappingInHierarchy(cn.superName, name, descriptor);
+                if (remapped != null) return remapped;
+            }
+
+            if (cn.interfaces != null) {
+                for (String iface : cn.interfaces) {
+                    if (context.hasMethodMapping(iface, name, descriptor)) {
+                        return context.getObfuscatedMethodName(iface, name, descriptor);
+                    }
+                    String remapped = findMethodMappingInHierarchy(iface, name, descriptor);
+                    if (remapped != null) return remapped;
+                }
+            }
+            return null;
+        }
+
+        private String findFieldMappingInHierarchy(String owner, String name, String descriptor) {
+            ClassNode cn = classMap.get(owner);
+            if (cn == null) return null;
+
+            if (cn.superName != null) {
+                if (context.hasFieldMapping(cn.superName, name, descriptor)) {
+                    return context.getObfuscatedFieldName(cn.superName, name, descriptor);
+                }
+                String remapped = findFieldMappingInHierarchy(cn.superName, name, descriptor);
+                if (remapped != null) return remapped;
+            }
+
+            if (cn.interfaces != null) {
+                for (String iface : cn.interfaces) {
+                    if (context.hasFieldMapping(iface, name, descriptor)) {
+                        return context.getObfuscatedFieldName(iface, name, descriptor);
+                    }
+                    String remapped = findFieldMappingInHierarchy(iface, name, descriptor);
+                    if (remapped != null) return remapped;
+                }
+            }
+            return null;
         }
     }
 }

@@ -84,6 +84,9 @@ public class InvokeDynamicTransformer {
                             mn.instructions.remove(min);
 
                             modified = true;
+                            if ((cn.version & 0xFFFF) < Opcodes.V1_7) {
+                                cn.version = (cn.version & 0xFFFF0000) | Opcodes.V1_7;
+                            }
                             totalInvocationsObfuscated++;
                         }
                     } else if (insn instanceof FieldInsnNode) {
@@ -116,6 +119,9 @@ public class InvokeDynamicTransformer {
                         mn.instructions.remove(fin);
                         
                         modified = true;
+                        if ((cn.version & 0xFFFF) < Opcodes.V1_7) {
+                            cn.version = (cn.version & 0xFFFF0000) | Opcodes.V1_7;
+                        }
                         totalFieldsObfuscated++;
                     }
                 }
