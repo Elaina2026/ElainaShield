@@ -88,8 +88,8 @@ public class ElainaShield {
             System.out.println();
             System.out.println("  ╔══════════════════════════════════════════════╗");
             System.out.println("  ║  [OK] Obfuscation completed successfully!    ║");
-            System.out.printf("  ║  [*] Time elapsed: %-25s ║%n", elapsed + "ms");
-            System.out.printf("  ║  [*] Output: %-31s ║%n", truncate(outputPath, 31));
+            System.out.printf("  ║  [*] Time elapsed: %-25s  ║%n", elapsed + "ms");
+            System.out.printf("  ║  [*] Output: %-31s  ║%n", truncate(outputPath, 31));
             System.out.println("  ╚══════════════════════════════════════════════╝");
 
         } catch (Exception e) {

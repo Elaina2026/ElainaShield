@@ -245,6 +245,20 @@ public class JarProcessor {
             // Write obfuscated classes
             int classesWritten = 0;
             for (ClassNode cn : classes) {
+                // Ultra-Sanitizer for Try-Catch blocks to prevent ASM Empty Try-Catch Bug
+                for (MethodNode mn : cn.methods) {
+                    if (mn.tryCatchBlocks != null) {
+                        mn.tryCatchBlocks.removeIf(tcb -> {
+                            // Xóa nếu nhãn lỗi
+                            if (tcb.start == null || tcb.end == null || tcb.handler == null) return true;
+                            // Xóa nếu Try-Catch là khối rỗng
+                            if (tcb.start == tcb.end || tcb.start.getNext() == tcb.end) return true;
+                            // Xóa nếu Handler (catch) KHÔNG TỒN TẠI trong tập lệnh
+                            return !mn.instructions.contains(tcb.handler);
+                        });
+                    }
+                }
+
                 try {
                     ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS, classMap, customClassLoader);
                     cn.accept(cw);
@@ -257,9 +271,11 @@ public class JarProcessor {
                     classesWritten++;
                 } catch (Exception e) {
                     System.err.println("    [ERROR] Crash in ClassNode.accept for class: " + cn.name);
+                    e.printStackTrace(System.err);
                     for (MethodNode mn : cn.methods) {
                         try {
-                            ClassWriter cw = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
+                            ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES, classMap, customClassLoader);
+                            cw.visit(cn.version, cn.access, cn.name, cn.signature, cn.superName, cn.interfaces.toArray(new String[0]));
                             mn.accept(cw);
                         } catch (Exception ex) {
                             System.err.println("      [ERROR] Method causing crash: " + mn.name + mn.desc);

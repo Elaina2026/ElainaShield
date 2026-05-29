@@ -398,7 +398,6 @@ public class JunkCodeTransformer {
         LabelNode l1 = new LabelNode();
         LabelNode l2 = new LabelNode();
         LabelNode l3 = new LabelNode();
-        LabelNode end = new LabelNode();
 
         // if (a > b)
         insns.add(new VarInsnNode(Opcodes.ILOAD, 0));
@@ -411,7 +410,7 @@ public class JunkCodeTransformer {
         insns.add(new InsnNode(Opcodes.IMUL));
         pushInt(insns, random.nextInt(1000));
         insns.add(new InsnNode(Opcodes.IADD));
-        insns.add(new JumpInsnNode(Opcodes.GOTO, end));
+        insns.add(new InsnNode(Opcodes.IRETURN));
 
         // else if (b > c)
         insns.add(l1);
@@ -424,7 +423,7 @@ public class JunkCodeTransformer {
         insns.add(new InsnNode(Opcodes.ISUB));
         pushInt(insns, random.nextInt(500));
         insns.add(new InsnNode(Opcodes.IXOR));
-        insns.add(new JumpInsnNode(Opcodes.GOTO, end));
+        insns.add(new InsnNode(Opcodes.IRETURN));
 
         // else if (c > a)
         insns.add(l2);
@@ -437,15 +436,13 @@ public class JunkCodeTransformer {
         insns.add(new InsnNode(Opcodes.IADD));
         pushInt(insns, random.nextInt(128));
         insns.add(new InsnNode(Opcodes.IXOR));
-        insns.add(new JumpInsnNode(Opcodes.GOTO, end));
+        insns.add(new InsnNode(Opcodes.IRETURN));
 
         // else (fallback)
         insns.add(l3);
         insns.add(new VarInsnNode(Opcodes.ILOAD, 2));
         pushInt(insns, random.nextInt(256));
         insns.add(new InsnNode(Opcodes.IAND));
-
-        insns.add(end);
         insns.add(new InsnNode(Opcodes.IRETURN));
 
         mn.maxStack = 4;
