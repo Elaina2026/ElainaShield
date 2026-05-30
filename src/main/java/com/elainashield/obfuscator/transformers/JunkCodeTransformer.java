@@ -45,6 +45,11 @@ public class JunkCodeTransformer {
     /** Aggressive mode multiplier */
     private static final int AGGRESSIVE_MULTIPLIER = 5;
 
+    /** JVM hard limit for method bytecode: 65535 bytes. We use 60KB as safety threshold. */
+    @SuppressWarnings("unused")
+    private static final int MAX_METHOD_BYTES = 65535;
+    private static final int SAFE_METHOD_BYTES = 60 * 1024; // 60KB safety margin
+
     public JunkCodeTransformer(ObfuscationConfig config, ObfuscationContext context, NameGenerator nameGen) {
         this.config = config;
         this.context = context;
@@ -477,6 +482,12 @@ public class JunkCodeTransformer {
         int injected = 0;
         int maxInjections = config.isAggressiveMode() ? 15 : 5;
 
+        // ── Size Tracker: estimate current method size before injecting ──
+        int currentSize = estimateBytecodeSize(method.instructions);
+        if (currentSize >= SAFE_METHOD_BYTES) {
+            return 0; // Already too large, skip entirely
+        }
+
         InsnList insns = method.instructions;
         List<AbstractInsnNode> insertionPoints = findInsertionPoints(insns);
 
@@ -484,9 +495,17 @@ public class JunkCodeTransformer {
         int count = Math.min(maxInjections, insertionPoints.size());
 
         for (int i = 0; i < count; i++) {
-            AbstractInsnNode insertBefore = insertionPoints.get(i);
             InsnList deadCode = generateOpaquePredicateBlock();
+            int blockSize = estimateBytecodeSize(deadCode);
+
+            // ── Size Tracker: abort if this block would breach the 60KB safety threshold ──
+            if (currentSize + blockSize >= SAFE_METHOD_BYTES) {
+                break;
+            }
+
+            AbstractInsnNode insertBefore = insertionPoints.get(i);
             insns.insertBefore(insertBefore, deadCode);
+            currentSize += blockSize;
             injected++;
         }
 
@@ -639,5 +658,75 @@ public class JunkCodeTransformer {
 
     private int randomRange(int min, int max) {
         return min + random.nextInt(max - min + 1);
+    }
+
+    // ==================================================================
+    // SIZE TRACKER — 64KB Method Limit Protection
+    // ==================================================================
+
+    /**
+     * Estimate the bytecode size (in bytes) of an instruction list.
+     * This is a conservative approximation — each opcode type has a known
+     * encoding size in the JVM class file format.
+     *
+     * Reference: JVM Spec §6.5 (Instruction Set)
+     */
+    private int estimateBytecodeSize(InsnList insns) {
+        int size = 0;
+        for (AbstractInsnNode insn = insns.getFirst(); insn != null; insn = insn.getNext()) {
+            size += estimateInsnSize(insn);
+        }
+        return size;
+    }
+
+    private int estimateInsnSize(AbstractInsnNode insn) {
+        switch (insn.getType()) {
+            case AbstractInsnNode.INSN:
+                return 1; // Simple opcode (NOP, POP, IADD, IRETURN, etc.)
+            case AbstractInsnNode.INT_INSN:
+                return insn.getOpcode() == Opcodes.SIPUSH ? 3 : 2; // BIPUSH=2, SIPUSH=3, NEWARRAY=2
+            case AbstractInsnNode.VAR_INSN: {
+                int var = ((VarInsnNode) insn).var;
+                // ILOAD_0..ALOAD_3 = 1 byte, otherwise xLOAD + index (2 or 4 bytes for wide)
+                if (var <= 3) return 1;
+                return var <= 255 ? 2 : 4; // wide prefix adds 2 extra bytes
+            }
+            case AbstractInsnNode.TYPE_INSN:
+                return 3; // NEW, CHECKCAST, INSTANCEOF, ANEWARRAY
+            case AbstractInsnNode.FIELD_INSN:
+                return 3; // GETFIELD, PUTFIELD, GETSTATIC, PUTSTATIC
+            case AbstractInsnNode.METHOD_INSN:
+                return insn.getOpcode() == Opcodes.INVOKEINTERFACE ? 5 : 3;
+            case AbstractInsnNode.INVOKE_DYNAMIC_INSN:
+                return 5; // INVOKEDYNAMIC
+            case AbstractInsnNode.JUMP_INSN:
+                return 3; // GOTO, IF_ICMPEQ, etc. (could be 5 for GOTO_W but rare)
+            case AbstractInsnNode.LDC_INSN: {
+                Object cst = ((LdcInsnNode) insn).cst;
+                // LDC = 2 bytes, LDC_W/LDC2_W = 3 bytes
+                if (cst instanceof Long || cst instanceof Double) return 3;
+                return 3; // Conservative: assume LDC_W
+            }
+            case AbstractInsnNode.IINC_INSN:
+                return ((IincInsnNode) insn).var <= 255 ? 3 : 6; // IINC or wide IINC
+            case AbstractInsnNode.TABLESWITCH_INSN: {
+                TableSwitchInsnNode ts = (TableSwitchInsnNode) insn;
+                // 1 + padding(0-3) + 4(default) + 4(low) + 4(high) + 4*N(targets)
+                return 1 + 3 + 12 + 4 * (ts.max - ts.min + 1);
+            }
+            case AbstractInsnNode.LOOKUPSWITCH_INSN: {
+                LookupSwitchInsnNode ls = (LookupSwitchInsnNode) insn;
+                // 1 + padding(0-3) + 4(default) + 4(npairs) + 8*N(key+target pairs)
+                return 1 + 3 + 8 + 8 * ls.keys.size();
+            }
+            case AbstractInsnNode.MULTIANEWARRAY_INSN:
+                return 4; // MULTIANEWARRAY
+            case AbstractInsnNode.LABEL:
+            case AbstractInsnNode.FRAME:
+            case AbstractInsnNode.LINE:
+                return 0; // Pseudo-instructions, no bytecode
+            default:
+                return 1; // Unknown — conservative estimate
+        }
     }
 }
