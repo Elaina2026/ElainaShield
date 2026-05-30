@@ -41,21 +41,6 @@ public class NameGenerator {
     };
 
     /**
-     * Starter characters for invisible mode - must be valid Java identifier start.
-     * We use rare but valid Unicode letters.
-     */
-    private static final char[] INVISIBLE_STARTERS = {
-            '\u01A2', // Ƣ - Latin Letter OI
-            '\u0250', // ɐ - Latin Small Letter Turned A
-            '\u0251', // ɑ - Latin Small Letter Alpha
-            '\u0252', // ɒ - Latin Small Letter Turned Alpha
-            '\u0253', // ɓ - Latin Small Letter B with Hook
-            '\u0254', // ɔ - Latin Small Letter Open O
-            '\u0256', // ɖ - Latin Small Letter D with Tail
-            '\u0257', // ɗ - Latin Small Letter D with Hook
-    };
-
-    /**
      * Cyrillic characters that look identical to Latin letters.
      * е=e, а=a, о=o, р=p, с=c, у=y, х=x, etc.
      */
@@ -187,15 +172,12 @@ public class NameGenerator {
 
     /**
      * Generate a name using invisible characters.
-     * Structure: [visible starter char] + [invisible char sequence based on counter]
+     * Structure: [invisible char sequence based on counter]
      * The counter is encoded in base-N using invisible chars.
      */
     private String generateInvisibleName(int counter, int minLen, int maxLen) {
         int len = minLen + random.nextInt(maxLen - minLen + 1);
         StringBuilder sb = new StringBuilder();
-
-        // Start with a random visible (but rare) starter character
-        sb.append(INVISIBLE_STARTERS[random.nextInt(INVISIBLE_STARTERS.length)]);
 
         // Encode counter into invisible chars for uniqueness
         int tempCounter = counter + random.nextInt(100);
@@ -216,12 +198,6 @@ public class NameGenerator {
         // Pad with random invisible chars to desired length
         while (sb.length() < len) {
             sb.append(INVISIBLE_CHARS[random.nextInt(INVISIBLE_CHARS.length)]);
-        }
-
-        // Inject a couple more visible starters at random positions for extra confusion
-        if (len > 3) {
-            int insertPos = 1 + random.nextInt(sb.length() - 1);
-            sb.insert(insertPos, INVISIBLE_STARTERS[random.nextInt(INVISIBLE_STARTERS.length)]);
         }
 
         return sb.toString();

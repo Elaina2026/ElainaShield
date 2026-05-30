@@ -217,31 +217,31 @@ public class ControlFlowTransformer {
             }
         }
 
-        // ── 0.6. Reference Slot Reuse Detection ──────────────────────────
-        // If a local variable is reused for different reference types, the dispatcher will merge them into Object.
-        // This causes VerifyError when a block expects a specific type like Color.
-        Map<Integer, String> refSlotTypes = new HashMap<>();
-        boolean hasLocals = method.localVariables != null && !method.localVariables.isEmpty();
-        if (hasLocals) {
-            for (LocalVariableNode lvn : method.localVariables) {
-                if (lvn.desc.startsWith("L") || lvn.desc.startsWith("[")) {
-                    if (refSlotTypes.containsKey(lvn.index) && !refSlotTypes.get(lvn.index).equals(lvn.desc)) {
-                        return false; // Type conflict! Reference slot reused. Skip CFF.
-                    }
-                    refSlotTypes.put(lvn.index, lvn.desc);
-                }
-            }
-        }
-        
+        // ── 0.6. Strict Reference Slot Verification ──────────────────────────
+        // To prevent JVM VerifyError caused by Dispatcher merging different reference types
+        // (including synthetic variables like Iterators not in LocalVariableTable),
+        // we enforce a strict rule: a reference slot can only be assigned ONCE in the bytecode.
+        // We also forbid reassigning reference parameters.
         Set<Integer> astoreSeen = new HashSet<>();
+        
+        // Mark reference parameters as already "seen" (assigned by the caller)
+        int currentSlot = ((method.access & Opcodes.ACC_STATIC) == 0) ? 1 : 0;
+        // If not static, 'this' is at slot 0 and is a reference
+        if (((method.access & Opcodes.ACC_STATIC) == 0)) {
+            astoreSeen.add(0);
+        }
+        for (org.objectweb.asm.Type t : org.objectweb.asm.Type.getArgumentTypes(method.desc)) {
+            if (t.getSort() == org.objectweb.asm.Type.OBJECT || t.getSort() == org.objectweb.asm.Type.ARRAY) {
+                astoreSeen.add(currentSlot);
+            }
+            currentSlot += t.getSize();
+        }
+
         for (AbstractInsnNode insn : method.instructions) {
             if (insn.getOpcode() == Opcodes.ASTORE) {
                 int varIdx = ((VarInsnNode) insn).var;
-                if (!hasLocals || !refSlotTypes.containsKey(varIdx)) {
-                    // If we don't have local variable info for this slot, enforce strict single-ASTORE rule
-                    if (!astoreSeen.add(varIdx)) {
-                        return false; // Multiple ASTOREs to unknown reference slot. Unsafe! Skip CFF.
-                    }
+                if (!astoreSeen.add(varIdx)) {
+                    return false; // Multiple assignments to the same reference slot! Unsafe! Skip CFF.
                 }
             }
         }

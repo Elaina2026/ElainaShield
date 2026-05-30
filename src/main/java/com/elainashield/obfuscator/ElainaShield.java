@@ -114,6 +114,9 @@ public class ElainaShield {
                 case "--no-junk":
                     config.setJunkCodeEnabled(false);
                     break;
+                case "--no-string":
+                    config.setStringEncryptionEnabled(false);
+                    break;
                 case "--no-outline":
                     config.setOutliningEnabled(false);
                     break;
@@ -173,6 +176,7 @@ public class ElainaShield {
         System.out.println("    --no-rename         Disable name mangling");
         System.out.println("    --no-flow           Disable control flow flattening");
         System.out.println("    --no-junk           Disable junk code injection");
+        System.out.println("    --no-string         Disable string encryption");
         System.out.println("    --no-indy           Disable invokedynamic obfuscation");
         System.out.println("    --no-outline        Disable method outlining");
         System.out.println("    --no-num            Disable number encryption");
