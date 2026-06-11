@@ -17,6 +17,48 @@ ElainaShield is a powerful, ASM-based Java obfuscator specifically designed to p
 - **Spigot/Paper Smart Mode**: Automatically preserves plugin main classes (`JavaPlugin`), event handlers (`@EventHandler`), and Bukkit command structures.
 - **API Preservation**: Exclude entire API packages from obfuscation so developers can still hook into your plugin.
 
+## How it works (Architecture)
+
+```mermaid
+graph TD
+    subgraph Input
+        A[input.jar] -->|JarInputStream| B(Class files & Resources)
+        B -->|ClassReader| C{ClassNode AST}
+    end
+
+    subgraph Initialization
+        Config[ObfuscationConfig] --> Context[ObfuscationContext]
+        Context -->|Filter Class| C
+        C -.->|If --keep-api| Skip[Skip Transformers]
+    end
+
+    subgraph Transformers Pipeline
+        C --> T1[1. String Encryption]
+        T1 --> T2[2. Number Encryption]
+        T2 --> T3[3. Method Outlining]
+        T3 --> T4[4. Junk Code Injection]
+        T4 --> T5[5. Control Flow Flattening]
+        T5 --> T6[6. Name Mangling]
+        T6 --> T7[7. Invoke Dynamic]
+    end
+
+    subgraph Output
+        T7 --> W1{Modified ClassNode}
+        Skip --> W1
+        W1 -->|ClassWriter + COMPUTE_FRAMES| W2[New Bytecode]
+        W2 -->|JarOutputStream| Out[output.jar]
+        B -.->|Copy Resources| Out
+    end
+
+    classDef input fill:#2D3748,stroke:#4A5568,color:#fff;
+    classDef transformer fill:#744210,stroke:#975A16,color:#fff;
+    classDef context fill:#2B6CB0,stroke:#2C5282,color:#fff;
+
+    class A,Out input;
+    class T1,T2,T3,T4,T5,T6,T7 transformer;
+    class Config,Context context;
+```
+
 ## Usage
 
 ```bash
