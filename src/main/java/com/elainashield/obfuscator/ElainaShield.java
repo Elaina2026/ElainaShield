@@ -168,9 +168,9 @@ public class ElainaShield {
     private static String deriveOutputPath(String inputPath) {
         int dotIndex = inputPath.lastIndexOf('.');
         if (dotIndex > 0) {
-            return inputPath.substring(0, dotIndex) + "-obfuscated.jar";
+            return inputPath.substring(0, dotIndex) + "-Shield.jar";
         }
-        return inputPath + "-obfuscated";
+        return inputPath + "-Shield";
     }
 
     private static String truncate(String s, int maxLen) {
