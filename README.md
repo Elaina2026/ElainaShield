@@ -3,7 +3,7 @@
 
 ElainaShield is a powerful, ASM-based Java obfuscator specifically designed to protect Minecraft plugins. It employs multiple layers of advanced obfuscation techniques to deter decompilation, reverse engineering, and tampering.
 
-![ElainaShield](https://i.imgur.com/8Q5Z2jG.png)
+![ElainaShield](https://i.postimg.cc/yd39tNZh/Chat-GPT-Image-19-57-44-11-thg-6-2026.png)
 
 ## Features
 
