@@ -88,8 +88,8 @@ public class ElainaShield {
             System.out.println();
             System.out.println("  ╔══════════════════════════════════════════════╗");
             System.out.println("  ║  [OK] Obfuscation completed successfully!    ║");
-            System.out.printf("  ║  [*] Time elapsed: %-25s  ║%n", elapsed + "ms");
-            System.out.printf("  ║  [*] Output: %-31s  ║%n", truncate(outputPath, 31));
+            System.out.printf("  ║  [*] Time elapsed: %-25s ║%n", elapsed + "ms");
+            System.out.printf("  ║  [*] Output: %-31s ║%n", truncate(outputPath, 31));
             System.out.println("  ╚══════════════════════════════════════════════╝");
 
         } catch (Exception e) {
@@ -146,6 +146,15 @@ public class ElainaShield {
                 case "--libraries":
                     if (i + 1 < args.length) {
                         config.setLibrariesPath(args[++i]);
+                    } else {
+                        System.err.println("  [ERROR] Missing path for --libraries option.");
+                    }
+                    break;
+                case "--keep-api":
+                    if (i + 1 < args.length) {
+                        config.addKeepApiPackage(args[++i]);
+                    } else {
+                        System.err.println("  [ERROR] Missing package for --keep-api option.");
                     }
                     break;
                 default:
@@ -170,9 +179,15 @@ public class ElainaShield {
     }
 
     private static void printUsage() {
-        System.out.println("  Usage: java -jar elaina-shield.jar <input.jar> [output.jar] [options]");
+        System.out.println("Usage: java -jar elaina-shield.jar <input.jar> [output.jar] [options]");
         System.out.println();
-        System.out.println("  Options:");
+        System.out.println("Options:");
+        System.out.println("    --keep-main         Preserve the main class name");
+        System.out.println("    --keep-api <pkg>    Preserve classes under a specific API package (can be used multiple times)");
+        System.out.println("    --unicode-invisible Use invisible characters for renaming");
+        System.out.println("    --unicode-confuse   Use confusing Cyrillic/Greek characters for renaming");
+        System.out.println("    --seed <number>     Set random seed for reproducibility");
+        System.out.println("    --libraries <path>  Path to external libraries folder for frame computation");
         System.out.println("    --no-rename         Disable name mangling");
         System.out.println("    --no-flow           Disable control flow flattening");
         System.out.println("    --no-junk           Disable junk code injection");
@@ -181,13 +196,6 @@ public class ElainaShield {
         System.out.println("    --no-outline        Disable method outlining");
         System.out.println("    --no-num            Disable number encryption");
         System.out.println("    --aggressive        Enable aggressive obfuscation mode");
-        System.out.println("    --keep-main         Preserve main class name");
-        System.out.println("    --unicode-invisible Use invisible Unicode chars for names");
-        System.out.println("    --unicode-confuse   Use confusing Unicode chars for names");
-        System.out.println("    --seed <number>     Set random seed for reproducible output");
-        System.out.println("    --libraries <path>  Path to folder containing external library JARs for frame computation");
-        System.out.println();
-        System.out.println("  Examples:");
         System.out.println("    java -jar elaina-shield.jar app.jar");
         System.out.println("    java -jar elaina-shield.jar app.jar secured.jar --aggressive");
         System.out.println("    java -jar elaina-shield.jar app.jar out.jar --keep-main --no-junk");

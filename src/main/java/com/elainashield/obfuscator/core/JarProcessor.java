@@ -21,20 +21,20 @@ import java.util.zip.ZipEntry;
 
 /**
  * ╔══════════════════════════════════════════════════════════════════╗
- * ║              JAR Processor - Obfuscation Pipeline                ║
+ * ║ JAR Processor - Obfuscation Pipeline ║
  * ╠══════════════════════════════════════════════════════════════════╣
- * ║ Orchestrates the complete obfuscation workflow:                  ║
- * ║   1. Read input JAR and parse all .class files into ClassNodes   ║
- * ║   2. Build the obfuscation context (scope, main class, etc.)     ║
- * ║   3. Apply transformers in sequence:                         ║
- * ║      a. String Encryption (encrypt literals, cache them)          ║
- * ║      b. Number Encryption (encrypt numeric constants)             ║
- * ║      c. Junk Code Injection (add fake code before renaming)       ║
- * ║      c. Control Flow Flattening (restructure methods)             ║
- * ║      d. Name Mangling (rename everything)                         ║
- * ║      e. Invoke Dynamic (hide method calls)                        ║
- * ║   4. Write the obfuscated classes into output JAR                ║
- * ║   5. Copy non-class resources unchanged                          ║
+ * ║ Orchestrates the complete obfuscation workflow: ║
+ * ║ 1. Read input JAR and parse all .class files into ClassNodes ║
+ * ║ 2. Build the obfuscation context (scope, main class, etc.) ║
+ * ║ 3. Apply transformers in sequence: ║
+ * ║ a. String Encryption (encrypt literals, cache them) ║
+ * ║ b. Number Encryption (encrypt numeric constants) ║
+ * ║ c. Junk Code Injection (add fake code before renaming) ║
+ * ║ c. Control Flow Flattening (restructure methods) ║
+ * ║ d. Name Mangling (rename everything) ║
+ * ║ e. Invoke Dynamic (hide method calls) ║
+ * ║ 4. Write the obfuscated classes into output JAR ║
+ * ║ 5. Copy non-class resources unchanged ║
  * ╚══════════════════════════════════════════════════════════════════╝
  */
 public class JarProcessor {
@@ -127,6 +127,16 @@ public class JarProcessor {
             if (config.isKeepMainClass()) {
                 context.excludeClass(mainClassName);
                 System.out.println("  [*] Main class excluded from renaming: " + mainClassName);
+            }
+        }
+
+        // Set keep api packages
+        for (String pkg : config.getKeepApiPackages()) {
+            System.out.println("  [*] API Package preserved: " + pkg);
+            for (ClassNode cn : classes) {
+                if (cn.name.startsWith(pkg)) {
+                    context.excludeClass(cn.name);
+                }
             }
         }
 
@@ -237,7 +247,7 @@ public class JarProcessor {
             for (ClassNode cn : classes) {
                 classMap.put(cn.name, cn);
             }
-            
+
             // Load external libraries if specified
             DependenciesLoader depsLoader = new DependenciesLoader(config.getLibrariesPath());
             ClassLoader customClassLoader = depsLoader.getClassLoader();
@@ -250,9 +260,11 @@ public class JarProcessor {
                     if (mn.tryCatchBlocks != null) {
                         mn.tryCatchBlocks.removeIf(tcb -> {
                             // Xóa nếu nhãn lỗi
-                            if (tcb.start == null || tcb.end == null || tcb.handler == null) return true;
+                            if (tcb.start == null || tcb.end == null || tcb.handler == null)
+                                return true;
                             // Xóa nếu Try-Catch là khối rỗng
-                            if (tcb.start == tcb.end || tcb.start.getNext() == tcb.end) return true;
+                            if (tcb.start == tcb.end || tcb.start.getNext() == tcb.end)
+                                return true;
                             // Xóa nếu Handler (catch) KHÔNG TỒN TẠI trong tập lệnh
                             return !mn.instructions.contains(tcb.handler);
                         });
@@ -260,7 +272,8 @@ public class JarProcessor {
                 }
 
                 try {
-                    ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS, classMap, customClassLoader);
+                    ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES | ClassWriter.COMPUTE_MAXS,
+                            classMap, customClassLoader);
                     cn.accept(cw);
                     byte[] bytecode = cw.toByteArray();
 
@@ -274,19 +287,24 @@ public class JarProcessor {
                     e.printStackTrace(System.err);
                     for (MethodNode mn : cn.methods) {
                         try {
-                            ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES, classMap, customClassLoader);
-                            cw.visit(cn.version, cn.access, cn.name, cn.signature, cn.superName, cn.interfaces.toArray(new String[0]));
+                            ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_FRAMES, classMap,
+                                    customClassLoader);
+                            cw.visit(cn.version, cn.access, cn.name, cn.signature, cn.superName,
+                                    cn.interfaces.toArray(new String[0]));
                             mn.accept(cw);
                         } catch (Exception ex) {
                             System.err.println("      [ERROR] Method causing crash: " + mn.name + mn.desc);
                             // Print instructions
-                            for (AbstractInsnNode insn = mn.instructions.getFirst(); insn != null; insn = insn.getNext()) {
-                                System.err.println("        " + insn.getClass().getSimpleName() + " : " + insn.getOpcode());
+                            for (AbstractInsnNode insn = mn.instructions.getFirst(); insn != null; insn = insn
+                                    .getNext()) {
+                                System.err.println(
+                                        "        " + insn.getClass().getSimpleName() + " : " + insn.getOpcode());
                             }
                         }
                     }
                     System.out.println("    [WARN] COMPUTE_FRAMES failed for " + cn.name +
-                            " (" + e.getClass().getSimpleName() + ": " + e.getMessage() + "), retrying without frames...");
+                            " (" + e.getClass().getSimpleName() + ": " + e.getMessage()
+                            + "), retrying without frames...");
                     e.printStackTrace(System.out);
                     try {
                         ClassWriter cw = new CustomClassWriter(ClassWriter.COMPUTE_MAXS, classMap, customClassLoader);

@@ -24,7 +24,6 @@ public class StringEncryptionTransformer {
 
     @SuppressWarnings("unused")
     private final ObfuscationConfig config;
-    @SuppressWarnings("unused")
     private final ObfuscationContext context;
     private final NameGenerator nameGen;
     private final Random random;
@@ -42,8 +41,11 @@ public class StringEncryptionTransformer {
         int totalStringsEncrypted = 0;
 
         for (ClassNode cn : classes) {
-            // Bỏ qua các class là Interface hoặc Annotation
+            // Bỏ qua các class là Interface hoặc Annotation, hoặc bị exclude
             if ((cn.access & Opcodes.ACC_INTERFACE) != 0 || (cn.access & Opcodes.ACC_ANNOTATION) != 0) {
+                continue;
+            }
+            if (context.isClassExcluded(cn.name)) {
                 continue;
             }
 

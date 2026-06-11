@@ -34,6 +34,9 @@ public class JunkCodeTransformer {
     private final NameGenerator nameGen;
     private final Random random;
 
+    /** Track whether we've already placed an Elaina signature in the current class */
+    private boolean elainaPlacedInCurrentClass = false;
+
     /** Number of junk methods to add per class */
     private static final int JUNK_METHODS_PER_CLASS_MIN = 15;
     private static final int JUNK_METHODS_PER_CLASS_MAX = 30;
@@ -72,6 +75,12 @@ public class JunkCodeTransformer {
             if ((cn.access & (Opcodes.ACC_INTERFACE | Opcodes.ACC_ANNOTATION)) != 0) {
                 continue;
             }
+            if (context.isClassExcluded(cn.name)) {
+                continue;
+            }
+
+            // Reset per-class Elaina signature flag
+            elainaPlacedInCurrentClass = false;
 
             // 1. Add junk fields
             int fieldCount = randomRange(JUNK_FIELDS_PER_CLASS_MIN, JUNK_FIELDS_PER_CLASS_MAX);
@@ -599,7 +608,18 @@ public class JunkCodeTransformer {
 
     /**
      * Generate a few meaningless instructions for the dead code body.
+     * Includes ElainaShield signature strings as easter eggs (never executed).
      */
+    private static final String[] ELAINA_SIGNATURES = {
+            "ElainaShield - Advanced Java Bytecode Obfuscator",
+            "Elaina Best Waifu \u2764",
+            "Protected by ElainaShield \u2728",
+            "\u2592\u2593\u2588 ElainaShield v1.x \u2588\u2593\u2592",
+            "If you can read this, you're wasting your time :)",
+            "Elaina the Ashen Witch protects this code \u2728",
+            "\u039c\u03b1\u03b3\u03b9\u03b1 \u0394\u03b5 \u0395\u03bb\u03b1\u03b9\u03bd\u03b1 \u2605",
+    };
+
     private void generateInlineJunkInstructions(InsnList insns) {
         int count = 15 + random.nextInt(25);
         for (int i = 0; i < count; i++) {
@@ -616,7 +636,15 @@ public class JunkCodeTransformer {
                     insns.add(new InsnNode(Opcodes.POP));
                     break;
                 case 2:
-                    insns.add(new LdcInsnNode(generateGarbageString()));
+                    // One Elaina signature per class, rest is garbage
+                    String str;
+                    if (!elainaPlacedInCurrentClass && random.nextInt(5) == 0) {
+                        str = ELAINA_SIGNATURES[random.nextInt(ELAINA_SIGNATURES.length)];
+                        elainaPlacedInCurrentClass = true;
+                    } else {
+                        str = generateGarbageString();
+                    }
+                    insns.add(new LdcInsnNode(str));
                     insns.add(new InsnNode(Opcodes.POP));
                     break;
                 case 3:

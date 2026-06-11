@@ -13,7 +13,6 @@ public class OutliningTransformer {
 
     @SuppressWarnings("unused")
     private final ObfuscationConfig config;
-    @SuppressWarnings("unused")
     private final ObfuscationContext context;
     private final NameGenerator nameGen;
     private final Set<String> generatedMethods = new HashSet<>();
@@ -29,7 +28,11 @@ public class OutliningTransformer {
         int totalOutlined = 0;
 
         for (ClassNode cn : classes) {
-            if ((cn.access & Opcodes.ACC_INTERFACE) != 0 || (cn.access & Opcodes.ACC_ANNOTATION) != 0) {
+            // Do not apply to interfaces, annotations, or excluded classes
+            if ((cn.access & (Opcodes.ACC_INTERFACE | Opcodes.ACC_ANNOTATION)) != 0) {
+                continue;
+            }
+            if (context.isClassExcluded(cn.name)) {
                 continue;
             }
 

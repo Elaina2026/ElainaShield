@@ -1,5 +1,8 @@
 package com.elainashield.obfuscator.core;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Configuration object holding all obfuscation settings.
  * Parsed from command-line arguments.
@@ -27,6 +30,7 @@ public class ObfuscationConfig {
     private NameStyle nameStyle = NameStyle.MIXED;
     private long seed = -1; // -1 means use random seed
     private String librariesPath = null;
+    private final List<String> keepApiPackages = new ArrayList<>();
 
     public boolean isNameManglingEnabled() {
         return nameManglingEnabled;
@@ -124,6 +128,14 @@ public class ObfuscationConfig {
         this.librariesPath = librariesPath;
     }
 
+    public void addKeepApiPackage(String pkg) {
+        this.keepApiPackages.add(pkg.replace('.', '/'));
+    }
+
+    public List<String> getKeepApiPackages() {
+        return keepApiPackages;
+    }
+
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
@@ -138,6 +150,7 @@ public class ObfuscationConfig {
         if (keepMainClass) sb.append(", KeepMain=YES");
         if (seed >= 0) sb.append(", Seed=").append(seed);
         if (librariesPath != null) sb.append(", Libs=").append(librariesPath);
+        if (!keepApiPackages.isEmpty()) sb.append(", KeepAPI=").append(keepApiPackages);
         return sb.toString();
     }
 }

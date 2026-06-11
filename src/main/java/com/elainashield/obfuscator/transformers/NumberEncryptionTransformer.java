@@ -22,7 +22,6 @@ public class NumberEncryptionTransformer {
 
     @SuppressWarnings("unused")
     private final ObfuscationConfig config;
-    @SuppressWarnings("unused")
     private final ObfuscationContext context;
     private final Random random;
 
@@ -39,6 +38,9 @@ public class NumberEncryptionTransformer {
 
         for (ClassNode cn : classes) {
             if ((cn.access & Opcodes.ACC_INTERFACE) != 0 || (cn.access & Opcodes.ACC_ANNOTATION) != 0) {
+                continue;
+            }
+            if (context.isClassExcluded(cn.name)) {
                 continue;
             }
 

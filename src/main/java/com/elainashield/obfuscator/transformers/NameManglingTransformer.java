@@ -232,6 +232,9 @@ public class NameManglingTransformer {
     }
 
     private boolean shouldSkipMethod(ClassNode owner, MethodNode mn) {
+        // Skip if the class is explicitly excluded (e.g., via --keep-api or keep-main)
+        if (context.isClassExcluded(owner.name)) return true;
+
         // Skip entirely if this class belongs to a shaded library
         if (isLibraryPackage(owner.name)) return true;
 
@@ -257,10 +260,19 @@ public class NameManglingTransformer {
             }
         }
 
+        // Check if it might be overriding an external method (e.g., interfaces or superclasses not in the JAR)
+        // This prevents AbstractMethodError at runtime.
+        if (isOverridingExternalMethod(owner, mn)) {
+            return true;
+        }
+
         return false;
     }
 
     private boolean shouldSkipField(ClassNode owner, FieldNode fn) {
+        // Skip if the class is explicitly excluded (e.g., via --keep-api or keep-main)
+        if (context.isClassExcluded(owner.name)) return true;
+
         // Skip entirely if this class belongs to a shaded library
         if (isLibraryPackage(owner.name)) return true;
 
@@ -280,7 +292,6 @@ public class NameManglingTransformer {
      * Check if a method is overriding a method from a class/interface
      * outside the JAR scope (e.g., JDK interfaces).
      */
-    @SuppressWarnings("unused")
     private boolean isOverridingExternalMethod(ClassNode owner, MethodNode mn) {
         // Check superclass
         if (owner.superName != null && !context.isInJarScope(owner.superName)) {
