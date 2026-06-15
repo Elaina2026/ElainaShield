@@ -129,7 +129,11 @@ public class ObfuscationConfig {
     }
 
     public void addKeepApiPackage(String pkg) {
-        this.keepApiPackages.add(pkg.replace('.', '/'));
+        String normalized = pkg.replace('.', '/').replace('\\', '/');
+        if (normalized.startsWith("/")) {
+            normalized = normalized.substring(1);
+        }
+        this.keepApiPackages.add(normalized);
     }
 
     public List<String> getKeepApiPackages() {
