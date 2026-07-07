@@ -98,7 +98,7 @@ public class JunkCodeTransformer {
             }
             totalMethods += methodCount;
 
-            // 3. Insert inline dead code into existing methods
+        // 3. Insert inline dead code into existing methods
             for (MethodNode mn : cn.methods) {
                 if (canInjectInline(mn)) {
                     int injected = injectInlineDeadCode(mn);
@@ -107,10 +107,53 @@ public class JunkCodeTransformer {
             }
         }
 
+        // 4. GENERATE FAKE CLASSES (CLASS BLOATING)
+        int fakeClassCount = 0;
+        if (config.isFakeClassesEnabled()) {
+            fakeClassCount = randomRange(5, 15);
+            if (config.isAggressiveMode()) fakeClassCount *= AGGRESSIVE_MULTIPLIER;
+            
+            List<ClassNode> fakeClasses = new ArrayList<>();
+            for (int i = 0; i < fakeClassCount; i++) {
+                ClassNode fakeNode = new ClassNode(Opcodes.ASM9);
+                // Access flags: PUBLIC
+                fakeNode.access = Opcodes.ACC_PUBLIC;
+                fakeNode.version = Opcodes.V1_8;
+                fakeNode.name = "elaina/junk/FakeClass" + System.nanoTime() + "_" + i;
+                fakeNode.superName = "java/lang/Object";
+
+                // Add default constructor
+                MethodNode init = new MethodNode(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+                init.instructions.add(new VarInsnNode(Opcodes.ALOAD, 0));
+                init.instructions.add(new MethodInsnNode(Opcodes.INVOKESPECIAL, "java/lang/Object", "<init>", "()V", false));
+                init.instructions.add(new InsnNode(Opcodes.RETURN));
+                fakeNode.methods.add(init);
+
+                // Add some junk fields
+                int fieldCount = randomRange(3, 10);
+                for (int j = 0; j < fieldCount; j++) {
+                    fakeNode.fields.add(generateJunkField());
+                }
+
+                // Add some junk methods
+                int methodCount = randomRange(2, 5);
+                for (int j = 0; j < methodCount; j++) {
+                    fakeNode.methods.add(generateJunkMethod(fakeNode));
+                }
+
+                fakeClasses.add(fakeNode);
+                // QUAN TRỌNG: Đăng ký class rác vào context để thuật toán Name Mangler 
+                // sau đó sẽ bóp méo tên và quăng nó vào các thư mục ngẫu nhiên
+                context.addJarClassName(fakeNode.name);
+            }
+            
+            classes.addAll(fakeClasses);
+        }
+
         context.addJunkMethods(totalMethods);
         context.addJunkFields(totalFields);
 
-        System.out.println("  [JunkCode] Injected: " + totalMethods + " methods, " +
+        System.out.println("  [JunkCode] Injected: " + fakeClassCount + " fake classes, " + totalMethods + " methods, " +
                 totalFields + " fields, " + totalInlineJunk + " inline blocks");
     }
 

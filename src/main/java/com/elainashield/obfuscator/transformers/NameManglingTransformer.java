@@ -62,9 +62,14 @@ public class NameManglingTransformer {
     public void buildRenamingMap(List<ClassNode> classes) {
         System.out.println("  [NameMangling] Phase 1: Building renaming map...");
 
-        // 1. Generate obfuscated package root (randomized depth 1-3)
-        int pkgDepth = 1 + nameGen.getRandom().nextInt(3);
-        String obfuscatedPackage = nameGen.generateObfuscatedPackage(pkgDepth);
+        // 1. Generate a pool of obfuscated package roots (randomized count and depth)
+        // This distributes classes randomly across multiple folders instead of just one.
+        int packageCount = 5 + nameGen.getRandom().nextInt(10); // Sinh ngẫu nhiên từ 5 đến 15 package
+        List<String> packagePool = new ArrayList<>();
+        for (int i = 0; i < packageCount; i++) {
+            int pkgDepth = 1 + nameGen.getRandom().nextInt(4); // Độ sâu từ 1 đến 4 thư mục
+            packagePool.add(nameGen.generateObfuscatedPackage(pkgDepth));
+        }
 
         // 2. Map class names
         for (ClassNode cn : classes) {
@@ -73,7 +78,9 @@ public class NameManglingTransformer {
                 continue;
             }
 
-            String newClassName = obfuscatedPackage + "/" + nameGen.nextClassName();
+            // Chọn ngẫu nhiên 1 package từ pool
+            String randomPackage = packagePool.get(nameGen.getRandom().nextInt(packagePool.size()));
+            String newClassName = randomPackage + "/" + nameGen.nextClassName();
             context.putClassName(cn.name, newClassName);
             context.incrementClassesRenamed();
         }
@@ -84,7 +91,8 @@ public class NameManglingTransformer {
                 for (InnerClassNode icn : cn.innerClasses) {
                     if (context.isInJarScope(icn.name) && !context.hasClassMapping(icn.name)
                             && !shouldSkipClassByName(icn.name)) {
-                        String newName = obfuscatedPackage + "/" + nameGen.nextClassName();
+                        String randomPackage = packagePool.get(nameGen.getRandom().nextInt(packagePool.size()));
+                        String newName = randomPackage + "/" + nameGen.nextClassName();
                         context.putClassName(icn.name, newName);
                         context.incrementClassesRenamed();
                     }
@@ -163,11 +171,39 @@ public class NameManglingTransformer {
             ClassNode remappedNode = new ClassNode(Opcodes.ASM9);
             ClassRemapper classRemapper = new ClassRemapper(remappedNode, remapper);
             cn.accept(classRemapper);
+            
+            // Ép tất cả thành PUBLIC để tránh lỗi IllegalAccessError 
+            // khi chúng ta phân tán các class có liên kết với nhau sang các package ngẫu nhiên khác nhau.
+            makePublic(remappedNode);
+
             remappedClasses.add(remappedNode);
         }
 
         System.out.println("  [NameMangling] Renaming applied to " + remappedClasses.size() + " classes");
         return remappedClasses;
+    }
+
+    private void makePublic(ClassNode cn) {
+        // Mở khóa Class
+        cn.access = (cn.access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED) | Opcodes.ACC_PUBLIC;
+        
+        // Mở khóa Methods
+        for (MethodNode mn : cn.methods) {
+            // Bỏ qua <init> nếu cần thiết, nhưng thường <init> public cũng an toàn
+            mn.access = (mn.access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED) | Opcodes.ACC_PUBLIC;
+        }
+        
+        // Mở khóa Fields
+        for (FieldNode fn : cn.fields) {
+            fn.access = (fn.access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED) | Opcodes.ACC_PUBLIC;
+        }
+
+        // Mở khóa Inner Classes
+        if (cn.innerClasses != null) {
+            for (InnerClassNode icn : cn.innerClasses) {
+                icn.access = (icn.access & ~Opcodes.ACC_PRIVATE & ~Opcodes.ACC_PROTECTED) | Opcodes.ACC_PUBLIC;
+            }
+        }
     }
 
     // ------------------------------------------------------------------

@@ -6,6 +6,7 @@ import com.elainashield.obfuscator.core.ObfuscationConfig;
 import java.io.File;
 import java.io.InputStream;
 import java.util.Properties;
+import com.elainashield.obfuscator.utils.UpdateChecker;
 
 /**
  * ╔══════════════════════════════════════════════════════════════╗
@@ -50,6 +51,9 @@ public class ElainaShield {
 
     public static void main(String[] args) {
         System.out.printf(BANNER_TEMPLATE, VERSION);
+        
+        // 1. Kiểm tra cập nhật (chạy đồng bộ, timeout 1.5s)
+        UpdateChecker.checkSync(VERSION);
 
         if (args.length < 1) {
             printUsage();
@@ -125,6 +129,9 @@ public class ElainaShield {
                     break;
                 case "--no-indy":
                     config.setInvokeDynamicEnabled(false);
+                    break;
+                case "--no-fake-classes":
+                    config.setFakeClassesEnabled(false);
                     break;
                 case "--aggressive":
                     config.setAggressiveMode(true);

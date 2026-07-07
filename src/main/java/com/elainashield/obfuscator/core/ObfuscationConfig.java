@@ -25,6 +25,7 @@ public class ObfuscationConfig {
     private boolean invokeDynamicEnabled = true;
     private boolean numberEncryptionEnabled = true;
     private boolean outliningEnabled = true;
+    private boolean fakeClassesEnabled = true;
     private boolean aggressiveMode = false;
     private boolean keepMainClass = false;
     private NameStyle nameStyle = NameStyle.MIXED;
@@ -86,6 +87,14 @@ public class ObfuscationConfig {
 
     public void setOutliningEnabled(boolean outliningEnabled) {
         this.outliningEnabled = outliningEnabled;
+    }
+
+    public boolean isFakeClassesEnabled() {
+        return fakeClassesEnabled;
+    }
+
+    public void setFakeClassesEnabled(boolean fakeClassesEnabled) {
+        this.fakeClassesEnabled = fakeClassesEnabled;
     }
 
     public boolean isAggressiveMode() {
